@@ -19,7 +19,7 @@ class AIService {
     private model: LlamaModel | null = null;
     private sessions: Map<string, ChatSession> = new Map();
     private isInitialized = false;
-    private maxConcurrentSessions = 4; // Limit concurrent sessions
+    private maxConcurrentSessions = 4; // 토큰 제한
 
     public async initialize() {
         if (this.isInitialized) return;
@@ -27,7 +27,8 @@ class AIService {
         try {
             console.log(chalk.yellow("Initializing AI Service..."));
             
-            // Initialize Llama
+            // Llama 초기화
+
             this.llama = await getLlama();
             console.log(chalk.yellow("Resolving model file..."));
             
@@ -43,7 +44,7 @@ class AIService {
             console.log(chalk.green("AI Service initialized successfully!"));
             console.log(chalk.cyan(`Maximum concurrent sessions: ${this.maxConcurrentSessions}`));
             
-            // Clean up old sessions periodically
+            // 일정 주기로 오래된 세션 정리
             setInterval(() => this.cleanupOldSessions(), 30 * 60 * 1000); // 30 minutes
         } catch (error) {
             console.error(chalk.red("Failed to initialize AI Service:"), error);
@@ -56,12 +57,12 @@ class AIService {
             throw new Error("AI Service not initialized");
         }
 
-        // Check session limit
+        // 세션 개수 제한 확인
         if (this.sessions.size >= this.maxConcurrentSessions) {
             throw new Error(`Maximum concurrent sessions (${this.maxConcurrentSessions}) reached`);
         }
 
-        // Check if session already exists
+        // 세션이 이미 존재하는지 확인
         if (this.sessions.has(sessionId)) {
             console.log(chalk.yellow(`Session ${sessionId} already exists, returning existing session`));
             return this.sessions.get(sessionId)!;
@@ -70,9 +71,9 @@ class AIService {
         try {
             console.log(chalk.blue(`Creating new session: ${sessionId}`));
             
-            // Create a new context with smaller size to reduce memory usage
+            // 메모리 사용 줄이기 위해 작은 크기의 컨텍스트 생성
             const sessionContext = await this.model.createContext({
-                contextSize: {max: 4096} // Reduced context size
+                contextSize: {max: 4096} // 줄인 컨텍스트 크기
             });
 
             console.log(chalk.gray(`Context created for session ${sessionId}`));
@@ -140,7 +141,7 @@ class AIService {
     public deleteSession(sessionId: string): boolean {
         const session = this.sessions.get(sessionId);
         if (session) {
-            // Dispose of the context to free up resources
+            // 리소스를 해제하기 위해 컨텍스트 dispose
             try {
                 console.log(chalk.gray(`Disposing context for session ${sessionId}`));
                 session.context.dispose();
@@ -158,7 +159,7 @@ class AIService {
 
     private cleanupOldSessions() {
         const now = new Date();
-        const maxAge = 60 * 60 * 1000; // 1 hour
+        const maxAge = 60 * 60 * 1000; // 1시간
 
         for (const [sessionId, session] of this.sessions.entries()) {
             if (now.getTime() - session.lastUsed.getTime() > maxAge) {
@@ -175,6 +176,10 @@ class AIService {
 
     public isReady(): boolean {
         return this.isInitialized;
+    }
+
+    public getMaxConcurrentSessions(): number {
+        return this.maxConcurrentSessions;
     }
 }
 

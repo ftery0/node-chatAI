@@ -36,7 +36,7 @@ export class WebSocketHandler {
             
             console.log(chalk.green(`WebSocket client connected: ${connectionId}`));
 
-            // Send initial status
+            // 초기 상태 전송
             this.sendToClient(ws, {
                 type: "status",
                 content: aiService.isReady() ? "AI Service is ready" : "AI Service is initializing...",
@@ -78,9 +78,9 @@ export class WebSocketHandler {
                     try {
                         const newSessionId = sessionId || uuidv4();
                         
-                        // Check if we can create a new session
+                        // 새 세션 생성 가능한지 확인
                         const sessionsCount = aiService.getSessionsCount();
-                        if (sessionsCount >= 4) { // Match the limit in AIService
+                        if (sessionsCount >= aiService.getMaxConcurrentSessions()) { // AIService에서 설정한 제한과 동일
                             this.sendError(ws, "Maximum number of concurrent sessions reached. Please try again later.");
                             return;
                         }
@@ -121,7 +121,7 @@ export class WebSocketHandler {
 
                     console.log(chalk.blue(`[${connectionId}] Processing message for session ${sessionId}`));
 
-                    // Send streaming chunks
+                    // 스트리밍 청크 전송
                     let fullResponse = "";
                     await aiService.sendMessage(sessionId, content, (chunk: string) => {
                         fullResponse += chunk;
@@ -134,7 +134,7 @@ export class WebSocketHandler {
                         });
                     });
 
-                    // Send completion message
+                    // 완료 메시지 전송
                     this.sendToClient(ws, {
                         type: "message",
                         sessionId,

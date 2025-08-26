@@ -353,7 +353,7 @@
                 switch (data.type) {
                     case 'status':
                         if (data.content.includes('ready')) {
-                            this.updateStatus('AI 시스템이 준비되었습니다!', 'ready');
+                            this.updateStatus('AI 시스템이 사용가능!', 'ready');
                             this.enableInput();
                         } else {
                             this.updateStatus(data.content, 'initializing');
