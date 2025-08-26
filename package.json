@@ -1,0 +1,61 @@
+{
+  "name": "llama-chat-server",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm run models:pull",
+    "models:pull": "node-llama-cpp pull --dir ./models \"hf:giladgd/gpt-oss-20b-GGUF/gpt-oss-20b.MXFP4.gguf\"",
+    "start": "vite-node ./src/server.ts",
+    "start:build": "node ./dist/server.js",
+    "dev": "vite-node ./src/server.ts --watch",
+    "prebuild": "rimraf ./dist ./tsconfig.tsbuildinfo",
+    "build": "tsc --build tsconfig.json --force",
+    "lint": "npm run lint:eslint",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "format": "npm run lint:eslint -- --fix",
+    "clean": "rm -rf ./node_modules ./dist ./tsconfig.tsbuildinfo ./models"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "express": "^4.21.2",
+    "node-llama-cpp": "^3.12.1",
+    "uuid": "^10.0.0",
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^4.2.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.15.17",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.10",
+    "eslint": "^9.26.0",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsdoc": "^50.6.11",
+    "eslint-plugin-n": "^17.17.0",
+    "rimraf": "^6.0.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.0",
+    "vite-node": "^3.1.3"
+  }
+}
