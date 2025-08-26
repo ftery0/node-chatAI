@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama Chat AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .status.ready {
+            color: #4ade80;
+        }
+
+        .status.initializing {
+            color: #fbbf24;
+        }
+
+        .status.error {
+            color: #f87171;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.ai {
+            text-align: left;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.ai .message-content {
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .typing-indicator {
+            display: none;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .typing-dots {
+            display: inline-block;
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .typing-dots::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            text-align: left;
+            animation: typing 1.5s infinite;
+        }
+
+        @keyframes typing {
+            0%, 20% { content: '●'; }
+            40% { content: '●●'; }
+            60% { content: '●●●'; }
+            80%, 100% { content: ''; }
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .input-group {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendButton {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        #sendButton:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: background-color 0.3s;
+        }
+
+        .connection-status.connected {
+            background: #10b981;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            body {
+                align-items: flex-start;
+                padding: 10px;
+            }
+
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .chat-header h1 {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* 스크롤바 스타일링 */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="connection-status" id="connectionStatus"></div>
+            <h1>🦙 Llama Chat AI</h1>
+            <div class="status initializing" id="statusText">AI 시스템 초기화 중...</div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                <div class="message-content">
+                    안녕하세요! 로컬 Llama AI와 대화해보세요. 무엇을 도와드릴까요?
+                </div>
+                <div class="message-time" id="initialTime"></div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots"></div>
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." disabled>
+                <button id="sendButton" disabled>전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ChatClient {
+            constructor() {
+                this.ws = null;
+                this.sessionId = this.generateUUID();
+                this.isConnected = false;
+                this.messageBuffer = '';
+                
+                this.initializeElements();
+                this.connect();
+                this.setupEventListeners();
+                this.updateInitialTime();
+            }
+
+            initializeElements() {
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.statusText = document.getElementById('statusText');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.typingIndicator = document.getElementById('typingIndicator');
+            }
+
+            generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
+            connect() {
+                const wsPort = window.location.port ? (parseInt(window.location.port) + 1) : 3001;
+                const wsUrl = `ws://${window.location.hostname}:${wsPort}`;
+                
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('WebSocket 연결됨');
+                    this.isConnected = true;
+                    this.connectionStatus.classList.add('connected');
+                    
+                    // 세션 생성
+                    this.sendMessage({
+                        type: 'session_create',
+                        sessionId: this.sessionId
+                    });
+                };
+
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleMessage(data);
+                };
+
+                this.ws.onclose = () => {
+                    console.log('WebSocket 연결 종료');
+                    this.isConnected = false;
+                    this.connectionStatus.classList.remove('connected');
+                    this.updateStatus('연결이 끊어졌습니다. 재연결 시도 중...', 'error');
+                    
+                    // 3초 후 재연결 시도
+                    setTimeout(() => this.connect(), 3000);
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket 오류:', error);
+                    this.updateStatus('연결 오류가 발생했습니다.', 'error');
+                };
+            }
+
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'status':
+                        if (data.content.includes('ready')) {
+                            this.updateStatus('AI 시스템이 준비되었습니다!', 'ready');
+                            this.enableInput();
+                        } else {
+                            this.updateStatus(data.content, 'initializing');
+                        }
+                        break;
+                        
+                    case 'session_created':
+                        console.log(`세션 생성됨: ${data.sessionId}`);
+                        break;
+                        
+                    case 'chunk':
+                        this.messageBuffer += data.content;
+                        this.updateTypingMessage(this.messageBuffer);
+                        break;
+                        
+                    case 'message':
+                        if (data.isComplete) {
+                            this.hideTyping();
+                            this.addMessage('ai', data.content, data.timestamp);
+                            this.messageBuffer = '';
+                            this.enableInput();
+                        }
+                        break;
+                        
+                    case 'error':
+                        this.hideTyping();
+                        this.addMessage('ai', `오류: ${data.error}`, data.timestamp);
+                        this.enableInput();
+                        break;
+                        
+                    case 'pong':
+                        console.log('Pong received');
+                        break;
+                }
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+
+            sendUserMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message || !this.isConnected) return;
+
+                this.addMessage('user', message);
+                this.messageInput.value = '';
+                this.disableInput();
+                this.showTyping();
+
+                this.sendMessage({
+                    type: 'message',
+                    sessionId: this.sessionId,
+                    content: message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            addMessage(type, content, timestamp) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = this.formatTime(timestamp || new Date().toISOString());
+
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            showTyping() {
+                this.typingIndicator.classList.add('show');
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.typingIndicator.classList.remove('show');
+                this.clearTypingMessage();
+            }
+
+            updateTypingMessage(content) {
+                let typingMessage = document.getElementById('typingMessage');
+                if (!typingMessage) {
+                    typingMessage = document.createElement('div');
+                    typingMessage.id = 'typingMessage';
+                    typingMessage.className = 'message ai';
+                    typingMessage.innerHTML = `
+                        <div class="message-content" id="typingContent"></div>
+                        <div class="message-time">입력 중...</div>
+                    `;
+                    this.chatMessages.appendChild(typingMessage);
+                }
+
+                const typingContent = document.getElementById('typingContent');
+                typingContent.textContent = content;
+                this.scrollToBottom();
+            }
+
+            clearTypingMessage() {
+                const typingMessage = document.getElementById('typingMessage');
+                if (typingMessage) {
+                    typingMessage.remove();
+                }
+            }
+
+            enableInput() {
+                this.messageInput.disabled = false;
+                this.sendButton.disabled = false;
+                this.messageInput.focus();
+            }
+
+            disableInput() {
+                this.messageInput.disabled = true;
+                this.sendButton.disabled = true;
+            }
+
+            updateStatus(text, status) {
+                this.statusText.textContent = text;
+                this.statusText.className = `status ${status}`;
+            }
+
+            scrollToBottom() {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+
+            updateInitialTime() {
+                const initialTimeElement = document.getElementById('initialTime');
+                initialTimeElement.textContent = this.formatTime(new Date().toISOString());
+            }
+
+            setupEventListeners() {
+                this.sendButton.addEventListener('click', () => {
+                    this.sendUserMessage();
+                });
+
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendUserMessage();
+                    }
+                });
+
+                // Keep connection alive with ping
+                setInterval(() => {
+                    if (this.isConnected) {
+                        this.sendMessage({ type: 'ping' });
+                    }
+                }, 30000);
+            }
+        }
+
+        // Initialize chat client when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatClient();
+        });
+    </script>
+</body>
+</html>
