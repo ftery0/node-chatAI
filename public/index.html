@@ -69,6 +69,68 @@
             background: #f8fafc;
         }
 
+        /* 레이아웃: 좌측 방 리스트, 우측 채팅 */
+        .layout {
+            display: flex;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 260px;
+            border-right: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-header button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            cursor: pointer;
+        }
+
+        .room-list {
+            overflow-y: auto;
+            padding: 8px;
+            flex: 1;
+        }
+
+        .room-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+
+        .room-item:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+        }
+
+        .room-item.active {
+            background: #e0e7ff;
+            border-color: #a5b4fc;
+        }
+
+        .chat-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
         .message {
             margin-bottom: 20px;
             animation: fadeIn 0.3s ease-in;
@@ -196,8 +258,8 @@
 
         .connection-status {
             position: absolute;
-            top: 10px;
-            right: 20px;
+            left: 16px;
+            top: 22px;
             width: 10px;
             height: 10px;
             border-radius: 50%;
@@ -220,6 +282,10 @@
                 width: 100%;
                 height: 100vh;
                 border-radius: 0;
+            }
+
+            .sidebar {
+                display: none;
             }
 
             .message-content {
@@ -256,26 +322,41 @@
             <div class="connection-status" id="connectionStatus"></div>
             <h1>🦙 Llama Chat AI</h1>
             <div class="status initializing" id="statusText">AI 시스템 초기화 중...</div>
+            <div style="position:absolute; right:16px; top:12px; display:flex; gap:8px; align-items:center;">
+                <span id="meText" style="font-size:0.9rem; opacity:0.9;">로그인 필요</span>
+                <button id="loginBtn">로그인</button>
+                <button id="signupBtn">회원가입</button>
+                <button id="logoutBtn" style="display:none">로그아웃</button>
+            </div>
         </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">
-                <div class="message-content">
-                    안녕하세요! 로컬 Llama AI와 대화해보세요. 무엇을 도와드릴까요?
+
+        <div class="layout">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <button id="newRoomBtn">+ 새 채팅</button>
+                    <button id="reloadRoomsBtn">새로고침</button>
                 </div>
-                <div class="message-time" id="initialTime"></div>
-            </div>
-        </div>
-        
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="typing-dots"></div>
-        </div>
-        
-        <div class="chat-input">
-            <div class="input-group">
-                <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." disabled>
-                <button id="sendButton" disabled>전송</button>
-            </div>
+                <div class="room-list" id="roomList"></div>
+            </aside>
+            <section class="chat-pane">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai">
+                        <div class="message-content">
+                            안녕하세요! 로컬 Llama AI와 대화해보세요. 무엇을 도와드릴까요?
+                        </div>
+                        <div class="message-time" id="initialTime"></div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots"></div>
+                </div>
+                <div class="chat-input">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." disabled>
+                        <button id="sendButton" disabled>전송</button>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
@@ -286,11 +367,14 @@
                 this.sessionId = this.generateUUID();
                 this.isConnected = false;
                 this.messageBuffer = '';
+                this.currentUser = null;
+                this.currentRoomId = null;
                 
                 this.initializeElements();
                 this.connect();
                 this.setupEventListeners();
                 this.updateInitialTime();
+                this.bootstrapAuthAndRooms();
             }
 
             initializeElements() {
@@ -300,6 +384,13 @@
                 this.statusText = document.getElementById('statusText');
                 this.connectionStatus = document.getElementById('connectionStatus');
                 this.typingIndicator = document.getElementById('typingIndicator');
+                this.meText = document.getElementById('meText');
+                this.loginBtn = document.getElementById('loginBtn');
+                this.signupBtn = document.getElementById('signupBtn');
+                this.logoutBtn = document.getElementById('logoutBtn');
+                this.roomList = document.getElementById('roomList');
+                this.newRoomBtn = document.getElementById('newRoomBtn');
+                this.reloadRoomsBtn = document.getElementById('reloadRoomsBtn');
             }
 
             generateUUID() {
@@ -375,6 +466,10 @@
                             this.addMessage('ai', data.content, data.timestamp);
                             this.messageBuffer = '';
                             this.enableInput();
+
+                            if (this.currentUser && this.currentRoomId) {
+                                this.apiSaveAssistantMessage(this.currentRoomId, data.content).catch(() => {});
+                            }
                         }
                         break;
                         
@@ -404,6 +499,10 @@
                 this.messageInput.value = '';
                 this.disableInput();
                 this.showTyping();
+
+                if (this.currentUser && this.currentRoomId) {
+                    this.apiSaveUserMessage(this.currentRoomId, message).catch(() => {});
+                }
 
                 this.sendMessage({
                     type: 'message',
@@ -517,6 +616,37 @@
                         this.sendMessage({ type: 'ping' });
                     }
                 }, 30000);
+
+                this.loginBtn.addEventListener('click', () => {
+                    window.location.href = '/login.html';
+                });
+
+                this.signupBtn.addEventListener('click', () => {
+                    window.location.href = '/signup.html';
+                });
+
+                this.logoutBtn.addEventListener('click', async () => {
+                    await this.apiLogout();
+                    await this.refreshMe();
+                    this.roomList.innerHTML = '';
+                    this.currentRoomId = null;
+                });
+
+                this.newRoomBtn.addEventListener('click', async () => {
+                    if (!this.currentUser) {
+                        alert('로그인 후 사용 가능합니다');
+                        return;
+                    }
+                    const name = prompt('채팅방 이름 (선택)') || '';
+                    const room = await this.apiCreateRoom(name);
+                    if (room) {
+                        await this.loadRooms(room.id);
+                    }
+                });
+
+                this.reloadRoomsBtn.addEventListener('click', async () => {
+                    await this.loadRooms(this.currentRoomId || undefined);
+                });
             }
         }
 
