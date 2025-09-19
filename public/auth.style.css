@@ -1,0 +1,74 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: linear-gradient(135deg,#4f46e5 0%, #243455 100%); 
+    min-height: 100vh; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 24px;
+}
+
+.card { 
+    width: 100%; 
+    max-width: 400px; 
+    border-radius: 18px; 
+    padding: 24px; 
+    background: rgba(255,255,255,0.06); 
+    border: 1px solid rgba(255,255,255,0.08); 
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02); 
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    color: #e6eef8;
+}
+
+h1 { font-size: 1.5rem; margin-bottom: 16px; color: #fff; text-align:center; }
+
+.field { margin-bottom: 12px; }
+label { display: block; font-size: .9rem; color: #cbd5e1; margin-bottom: 6px; }
+input { 
+    width: 100%; 
+    padding: 10px 14px; 
+    border-radius: 999px; 
+    border: 1px solid rgba(255,255,255,0.2); 
+    background: rgba(255,255,255,0.05); 
+    color: #fff; 
+    font-size: 1rem; 
+    outline: none; 
+    transition: all 0.2s ease; 
+}
+input:focus { 
+    border-color: #667eea; 
+    background: rgba(255,255,255,0.1);
+    box-shadow: 0 0 8px rgba(102,126,234,0.5);
+}
+
+button { 
+    width: 100%; 
+    padding: 10px 14px; 
+    border: none; 
+    border-radius: 999px; 
+    color: #fff; 
+    background: linear-gradient(135deg,#667eea,#764ba2); 
+    font-size: 1rem; 
+    cursor: pointer; 
+    margin-top: 8px; 
+    transition: all 0.25s ease; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+button:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 18px rgba(102,126,234,0.45);
+}
+
+.link { margin-top: 12px; text-align: center; font-size: .9rem; }
+.link a { color: #becafe; text-decoration: none; }
+.link a:hover { text-decoration: underline; }
+
+.error { 
+    margin-top: 8px; 
+    color: #f87171; 
+    font-size: .9rem; 
+    min-height: 20px; 
+    text-align:center;
+}
