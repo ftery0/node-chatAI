@@ -36,6 +36,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
+            width: 100%;
             text-align: center;
             position: relative;
         }
@@ -325,7 +326,6 @@
             <div style="position:absolute; right:16px; top:12px; display:flex; gap:8px; align-items:center;">
                 <span id="meText" style="font-size:0.9rem; opacity:0.9;">로그인 필요</span>
                 <button id="loginBtn">로그인</button>
-                <button id="signupBtn">회원가입</button>
                 <button id="logoutBtn" style="display:none">로그아웃</button>
             </div>
         </div>
@@ -386,7 +386,6 @@
                 this.typingIndicator = document.getElementById('typingIndicator');
                 this.meText = document.getElementById('meText');
                 this.loginBtn = document.getElementById('loginBtn');
-                this.signupBtn = document.getElementById('signupBtn');
                 this.logoutBtn = document.getElementById('logoutBtn');
                 this.roomList = document.getElementById('roomList');
                 this.newRoomBtn = document.getElementById('newRoomBtn');
@@ -621,9 +620,6 @@
                     window.location.href = '/login.html';
                 });
 
-                this.signupBtn.addEventListener('click', () => {
-                    window.location.href = '/signup.html';
-                });
 
                 this.logoutBtn.addEventListener('click', async () => {
                     await this.apiLogout();
@@ -649,8 +645,6 @@
                 });
             }
         }
-
-        // Initialize chat client when page loads
         document.addEventListener('DOMContentLoaded', () => {
             new ChatClient();
         });

@@ -2,9 +2,9 @@
   "name": "llama-chat-server",
   "private": true,
   "version": "0.0.0",
-  "main": "./dist/index.js",
+  "main": "./dist/api/server.js",
   "type": "module",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/api/server.d.ts",
   "files": [
     "dist/",
     "package.json",
@@ -12,29 +12,39 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "node": "./dist/index.js",
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/api/server.js",
+      "node": "./dist/api/server.js",
+      "types": "./dist/api/server.d.ts",
+      "default": "./dist/api/server.js"
+    },
+    "./ai": {
+      "import": "./dist/ai/aiServer.js",
+      "node": "./dist/ai/aiServer.js",
+      "types": "./dist/ai/aiServer.d.ts",
+      "default": "./dist/ai/aiServer.js"
     }
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "postinstall": "npm run models:pull",
-    "models:pull": "node-llama-cpp pull --dir ./models \"hf:giladgd/gpt-oss-20b-GGUF/gpt-oss-20b.MXFP4.gguf\"",
-    "start": "vite-node ./src/server.ts",
-    "start:ai": "vite-node ./src/aiServer.ts",
-    "dev": "concurrently -n api,ai -c blue,magenta \"vite-node ./src/server.ts --watch\" \"vite-node ./src/aiServer.ts --watch\"",
+    "start": "concurrently -n api,ai -c blue,magenta \"npm run start:api\" \"npm run start:ai\"",
+    "dev": "concurrently -n api,ai -c blue,magenta \"npm run dev:api\" \"npm run dev:ai\"",
+    "dev:api": "vite-node ./src/api/server.ts --watch",
+    "dev:ai": "vite-node ./src/ai/aiServer.ts --watch",
+    "build": "npm run build:api && npm run build:ai",
+    "build:api": "tsc --build tsconfig.api.json --force",
+    "build:ai": "tsc --build tsconfig.ai.json --force",
+    "start:api": "node ./dist/api/server.js",
+    "start:ai": "node ./dist/ai/aiServer.js",
     "prebuild": "rimraf ./dist ./tsconfig.tsbuildinfo",
-    "build": "tsc --build tsconfig.json --force",
-    "start:build": "node ./dist/server.js",
-    "start:ai:build": "node ./dist/aiServer.js",
-    "lint": "npm run lint:eslint",
-    "lint:eslint": "eslint --report-unused-disable-directives .",
-    "format": "npm run lint:eslint -- --fix",
-    "clean": "rm -rf ./node_modules ./dist ./tsconfig.tsbuildinfo ./models"
+    "lint": "npm run lint:api && npm run lint:ai",
+    "lint:api": "eslint --report-unused-disable-directives ./src/api",
+    "lint:ai": "eslint --report-unused-disable-directives ./src/ai",
+    "format": "npm run format:api && npm run format:ai",
+    "format:api": "eslint --fix ./src/api",
+    "format:ai": "eslint --fix ./src/ai",
+    "clean": "rm -rf ./dist ./tsconfig.tsbuildinfo ./models"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

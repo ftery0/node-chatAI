@@ -17,7 +17,7 @@ const WS_PORT = HTTP_PORT + 1;
 
 // 미들웨어
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "..", "public")));
+app.use(express.static(path.join(__dirname, "..", "..", "public")));
 
 // 세션
 const SESSION_SECRET = process.env.SESSION_SECRET || "change-me";
@@ -45,7 +45,7 @@ async function initializeServer() {
 
 // 라우트
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+    res.sendFile(path.join(__dirname, "..", "..", "public", "index.html"));
 });
 
 app.get("/api/status", (req, res) => {
@@ -76,9 +76,9 @@ app.post("/api/auth/signup", async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const user = await UserModel.create({email, passwordHash, name});
         (req.session as any).userId = user._id.toString();
-        res.json({ok: true, user: {id: user._id, email: user.email, name: user.name}});
+        return res.json({ok: true, user: {id: user._id, email: user.email, name: user.name}});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "signup failed"});
+        return res.status(500).json({error: e.message || "signup failed"});
     }
 });
 
@@ -91,9 +91,9 @@ app.post("/api/auth/login", async (req, res) => {
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return res.status(401).json({error: "invalid credentials"});
         (req.session as any).userId = user._id.toString();
-        res.json({ok: true, user: {id: user._id, email: user.email, name: user.name}});
+        return res.json({ok: true, user: {id: user._id, email: user.email, name: user.name}});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "login failed"});
+        return res.status(500).json({error: e.message || "login failed"});
     }
 });
 
@@ -109,9 +109,9 @@ app.get("/api/auth/me", async (req, res) => {
         if (!userId) return res.json({user: null});
         const user = await UserModel.findById(userId).lean();
         if (!user) return res.json({user: null});
-        res.json({user: {id: user._id, email: user.email, name: user.name}});
+        return res.json({user: {id: user._id, email: user.email, name: user.name}});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "me failed"});
+        return res.status(500).json({error: e.message || "me failed"});
     }
 });
 
@@ -119,7 +119,7 @@ app.get("/api/auth/me", async (req, res) => {
 function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
     const userId = (req.session as any).userId;
     if (!userId) return res.status(401).json({error: "unauthorized"});
-    next();
+    return next();
 }
 
 // 채팅방/메시지 API (로그인 사용자만 저장 가능)
@@ -128,9 +128,9 @@ app.post("/api/chat/rooms", requireAuth, async (req, res) => {
         const userId = (req.session as any).userId;
         const {name} = req.body || {};
         const room = await ChatRoomModel.create({userId, name});
-        res.json({ok: true, room: {id: room._id, name: room.name}});
+        return res.json({ok: true, room: {id: room._id, name: room.name}});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "create room failed"});
+        return res.status(500).json({error: e.message || "create room failed"});
     }
 });
 
@@ -139,9 +139,9 @@ app.get("/api/chat/rooms", requireAuth, async (req, res) => {
         const userId = (req.session as any).userId;
         const rooms = await ChatRoomModel.find({userId}).sort({lastMessageAt: -1, createdAt: -1})
             .lean();
-        res.json({rooms: rooms.map((r) => ({id: r._id, name: r.name, createdAt: r.createdAt, lastMessageAt: r.lastMessageAt}))});
+        return res.json({rooms: rooms.map((r) => ({id: r._id, name: r.name, createdAt: r.createdAt, lastMessageAt: r.lastMessageAt}))});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "list rooms failed"});
+        return res.status(500).json({error: e.message || "list rooms failed"});
     }
 });
 
@@ -153,9 +153,9 @@ app.get("/api/chat/rooms/:roomId/messages", requireAuth, async (req, res) => {
         if (!room) return res.status(404).json({error: "room not found"});
         const messages = await MessageModel.find({roomId}).sort({createdAt: 1})
             .lean();
-        res.json({messages: messages.map((m) => ({id: m._id, role: m.role, content: m.content, createdAt: m.createdAt}))});
+        return res.json({messages: messages.map((m) => ({id: m._id, role: m.role, content: m.content, createdAt: m.createdAt}))});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "list messages failed"});
+        return res.status(500).json({error: e.message || "list messages failed"});
     }
 });
 
@@ -169,9 +169,9 @@ app.post("/api/chat/rooms/:roomId/messages/user", requireAuth, async (req, res) 
         if (!room) return res.status(404).json({error: "room not found"});
         const msg = await MessageModel.create({roomId, userId, role: "user", content});
         await ChatRoomModel.updateOne({_id: roomId}, {$set: {lastMessageAt: msg.createdAt}});
-        res.json({ok: true, id: msg._id, createdAt: msg.createdAt});
+        return res.json({ok: true, id: msg._id, createdAt: msg.createdAt});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "save user message failed"});
+        return res.status(500).json({error: e.message || "save user message failed"});
     }
 });
 
@@ -185,9 +185,9 @@ app.post("/api/chat/rooms/:roomId/messages/assistant", requireAuth, async (req, 
         if (!room) return res.status(404).json({error: "room not found"});
         const msg = await MessageModel.create({roomId, role: "assistant", content});
         await ChatRoomModel.updateOne({_id: roomId}, {$set: {lastMessageAt: msg.createdAt}});
-        res.json({ok: true, id: msg._id, createdAt: msg.createdAt});
+        return res.json({ok: true, id: msg._id, createdAt: msg.createdAt});
     } catch (e: any) {
-        res.status(500).json({error: e.message || "save assistant message failed"});
+        return res.status(500).json({error: e.message || "save assistant message failed"});
     }
 });
 

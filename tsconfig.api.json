@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/api",
+    "rootDir": "./src/api"
+  },
+  "include": [
+    "src/api/**/*"
+  ],
+  "exclude": [
+    "src/ai/**/*",
+    "node_modules",
+    "dist"
+  ]
+}

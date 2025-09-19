@@ -26,9 +26,6 @@
         "composite": false,
         "declaration": true
     },
-    "files": [
-        "./src/index.ts"
-    ],
     "include": [
         "./src"
     ]
