@@ -1,7 +1,7 @@
 {
   "name": "llama-chat-server",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.2",
   "main": "./dist/api/server.js",
   "type": "module",
   "types": "./dist/api/server.d.ts",
@@ -44,9 +44,14 @@
     "format": "npm run format:api && npm run format:ai",
     "format:api": "eslint --fix ./src/api",
     "format:ai": "eslint --fix ./src/ai",
-    "clean": "rm -rf ./dist ./tsconfig.tsbuildinfo ./models"
+    "clean": "rm -rf ./dist ./tsconfig.tsbuildinfo ./models",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/cli": "^2.8.4",
     "bcryptjs": "^3.0.2",
     "chalk": "^5.4.1",
     "connect-mongo": "^5.1.0",

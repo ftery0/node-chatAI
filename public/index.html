@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Llama Chat AI</title>
+    <title>NodeChat AI</title>
      <style>
     /* 기본 리셋 */
     *{margin:0;padding:0;box-sizing:border-box}
@@ -12,13 +12,19 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      background: linear-gradient(135deg,#4f46e5 0%, #243455 100%);
+      position:fixed;
+      inset:0;
+      backdrop-filter: blur(11px);
+    -webkit-backdrop-filter: blur(11px);        
       min-height:100vh;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:24px;
       gap:24px;
+      background-image: url('./bg.jpeg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat; 
       /* 전체 배경에 약한 노이즈/그라디언트 */
     }
 
@@ -26,7 +32,8 @@
     .app-shell {
       position:fixed;
       inset:0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+      /* background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)); */
+      background: transparent;
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
       z-index:-1;
@@ -34,8 +41,8 @@
 
     /* 전체 화면 컨테이너 */
     .chat-container {
-      width: 100%;
-      height: 100%;
+      width: 90%;
+      height: 90%;
       max-width: 1400px; /* 원하는 최대 폭 */
       max-height: 100vh;
       margin: auto;
@@ -43,12 +50,16 @@
       flex-direction:column;
       border-radius:18px;
       overflow:hidden;
-      /* 글라스 카드 스타일 */
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+
+      background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    
       padding: 0;
     }
 
@@ -186,7 +197,8 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0));
     }
     .input-group{ display:flex; gap:12px; flex:1 }
-    #messageInput{ flex:1; padding:12px 16px; border-radius:999px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); color:#fff; outline:none }
+    #messageInput{ flex:1; padding:12px 16px; border-radius:999px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); color:#fff; outline:none; }
+    #messageInput::placeholder{ color:white; }
     #sendButton{ padding:10px 18px; border-radius:999px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; cursor:pointer }
 
     /* 반응형: 모바일에서는 사이드 숨김 */
@@ -205,7 +217,7 @@
     <header class="chat-header">
       <div style="display:flex;align-items:center;gap:12px">
         <div id="connectionStatus" class="connection-status" aria-hidden="true"></div>
-        <h1>🦙 Llama Chat AI</h1>
+        <h1>NodeChat</h1>
         <div style="margin-left:10px" class="status-initializing" id="statusText">AI 시스템 초기화 중...</div>
       </div>
 
@@ -228,7 +240,7 @@
       <main class="chat-pane">
         <div id="chatMessages" class="chat-messages">
           <div class="message ai">
-            <div class="message-content">안녕하세요! 로컬 Llama AI와 대화해보세요. 무엇을 도와드릴까요?</div>
+            <div class="message-content">안녕하세요! NodeChat와 대화해보세요. 무엇을 도와드릴까요?</div>
             <div class="message-time" id="initialTime"></div>
           </div>
         </div>
@@ -243,7 +255,10 @@
     </div>
   </div>
 
-    <script>
+    <script type="module">
+        import { invoke } from 'https://unpkg.com/@tauri-apps/api@2/core';
+        import { getCurrentWindow } from 'https://unpkg.com/@tauri-apps/api@2/window';
+        
         class ChatClient {
             constructor() {
                 this.ws = null;
@@ -252,12 +267,136 @@
                 this.messageBuffer = '';
                 this.currentUser = null;
                 this.currentRoomId = null;
+                this.isTauri = false;
                 
                 this.initializeElements();
+                this.checkTauriEnvironment();
                 this.connect();
                 this.setupEventListeners();
                 this.updateInitialTime();
                 this.bootstrapAuthAndRooms();
+            }
+
+            async checkTauriEnvironment() {
+                try {
+                    // Tauri 환경인지 확인
+                    await getCurrentWindow();
+                    this.isTauri = true;
+                    this.applyTauriStyles();
+                    this.setupTauriWindow();
+                } catch (error) {
+                    this.isTauri = false;
+                    console.log('웹 브라우저 환경에서 실행 중');
+                }
+            }
+
+            applyTauriStyles() {
+                if (!this.isTauri) return;
+                
+                // body에 Tauri 클래스 추가
+                document.body.classList.add('tauri-app');
+                
+                // 글래스 효과를 위한 CSS 동적 추가
+                const style = document.createElement('style');
+                style.textContent = `
+                    .tauri-app {
+                        background: transparent !important;
+                        backdrop-filter: blur(25px) saturate(200%);
+                        -webkit-backdrop-filter: blur(25px) saturate(200%);
+                        height: 100vh;
+                        width: 100vw;
+                        overflow: hidden;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    
+                    .tauri-app .app-shell {
+                        background: transparent !important;
+                        backdrop-filter: blur(25px) saturate(200%);
+                        -webkit-backdrop-filter: blur(25px) saturate(200%);
+                    }
+                    
+                    .tauri-app .chat-container {
+                        background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
+                        border: 1px solid rgba(255,255,255,0.2);
+                        box-shadow: 0 25px 50px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+                        backdrop-filter: blur(20px) saturate(180%);
+                        -webkit-backdrop-filter: blur(20px) saturate(180%);
+                        height: calc(100vh - 20px);
+                        max-height: calc(100vh - 20px);
+                        border-radius: 20px;
+                        margin: 10px;
+                        overflow: hidden;
+                    }
+                    
+                    .tauri-app .sidebar {
+                        background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+                        border-right: 1px solid rgba(255,255,255,0.15);
+                        backdrop-filter: blur(15px);
+                        -webkit-backdrop-filter: blur(15px);
+                    }
+                    
+                    .tauri-app .chat-messages {
+                        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                    }
+                    
+                    .tauri-app .chat-header {
+                        background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+                        backdrop-filter: blur(15px);
+                        -webkit-backdrop-filter: blur(15px);
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 20px 20px 0 0;
+                    }
+                    
+                    .tauri-app .chat-input {
+                        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        border-top: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 0 0 20px 20px;
+                    }
+                    
+                    /* 전체 화면 모드에서 추가 스타일 */
+                    .tauri-app.fullscreen .chat-container {
+                        border-radius: 0;
+                        margin: 0;
+                        max-width: none;
+                        max-height: none;
+                        height: 100vh;
+                    }
+                    
+                    .tauri-app.fullscreen .chat-header {
+                        border-radius: 0;
+                    }
+                    
+                    .tauri-app.fullscreen .chat-input {
+                        border-radius: 0;
+                    }
+                    
+                    /* 타이틀바 오버레이 스타일 */
+                    .tauri-app .chat-header {
+                        padding-top: 5px;5                   }
+                `;
+                document.head.appendChild(style);
+            }
+
+            async setupTauriWindow() {
+                if (!this.isTauri) return;
+                
+                try {
+                    const window = getCurrentWindow();
+                    
+                    // 창 크기를 화면에 맞게 설정 (전체 화면은 사용자가 선택)
+                    await window.setResizable(true);
+                    
+                    // 창을 화면 중앙에 배치
+                    await window.center();
+                    
+                } catch (error) {
+                    console.error('Tauri 창 설정 오류:', error);
+                }
             }
 
             initializeElements() {
@@ -273,6 +412,47 @@
                 this.roomList = document.getElementById('roomList');
                 this.newRoomBtn = document.getElementById('newRoomBtn');
                 this.reloadRoomsBtn = document.getElementById('reloadRoomsBtn');
+                
+                // Tauri 환경에서 전체 화면 토글 버튼 추가
+                if (this.isTauri) {
+                    this.addFullscreenToggle();
+                }
+            }
+
+            addFullscreenToggle() {
+                const header = document.querySelector('.chat-header');
+                const fullscreenBtn = document.createElement('button');
+                fullscreenBtn.innerHTML = '⛶';
+                fullscreenBtn.style.cssText = `
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(255,255,255,0.05);
+                    color: #fff;
+                    cursor: pointer;
+                    font-size: 14px;
+                    margin-left: 8px;
+                `;
+                fullscreenBtn.title = '전체 화면 토글';
+                
+                fullscreenBtn.addEventListener('click', async () => {
+                    try {
+                        const window = getCurrentWindow();
+                        const isFullscreen = await window.isFullscreen();
+                        await window.setFullscreen(!isFullscreen);
+                        
+                        // 전체 화면 상태에 따라 클래스 토글
+                        if (!isFullscreen) {
+                            document.body.classList.add('fullscreen');
+                        } else {
+                            document.body.classList.remove('fullscreen');
+                        }
+                    } catch (error) {
+                        console.error('전체 화면 토글 오류:', error);
+                    }
+                });
+                
+                header.appendChild(fullscreenBtn);
             }
 
             generateUUID() {
